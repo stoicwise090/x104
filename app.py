@@ -44,7 +44,7 @@ def main():
         
         st.divider()
         st.caption("Breed Recognition Site v2.2")
-        st.caption("Rashtriya Gokul Mission")
+        st.caption("Still working")
 
     # Routing Logic based on Session State
     page_selection = st.session_state.navigation
