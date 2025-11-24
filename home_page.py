@@ -1,6 +1,11 @@
 import streamlit as st
 from utils import HELPLINE_NUMBERS
 
+# Helper function to change pages
+def navigate_to(page_name):
+    st.session_state.navigation = page_name
+    st.rerun()
+
 def show():
     # Hero Section
     st.markdown("""
@@ -18,37 +23,49 @@ def show():
         st.markdown("""
         <div class="nav-card">
             <div class="nav-icon">📸</div>
-            <h3>Fun Facts</h3>
+            <h3 style="margin:0">Fun Facts</h3>
             <p style="font-size: 0.9rem;">Identify breeds & learn trivia.</p>
         </div>
         """, unsafe_allow_html=True)
+        # ACTION BUTTON
+        if st.button("Go to Fun Facts", key="btn_facts", use_container_width=True):
+            navigate_to("Breed & Facts")
     
     with col2:
         st.markdown("""
         <div class="nav-card">
             <div class="nav-icon">🩺</div>
-            <h3>Health Triage</h3>
+            <h3 style="margin:0">Health Triage</h3>
             <p style="font-size: 0.9rem;">Scan for diseases & injuries.</p>
         </div>
         """, unsafe_allow_html=True)
+        # ACTION BUTTON
+        if st.button("Go to Triage", key="btn_health", use_container_width=True):
+            navigate_to("Health Triage")
 
     with col3:
         st.markdown("""
         <div class="nav-card">
             <div class="nav-icon">🧬</div>
-            <h3>Deep Analysis</h3>
+            <h3 style="margin:0">Deep Analysis</h3>
             <p style="font-size: 0.9rem;">Expert breed evaluation.</p>
         </div>
         """, unsafe_allow_html=True)
+        # ACTION BUTTON
+        if st.button("Go to Analysis", key="btn_detail", use_container_width=True):
+            navigate_to("Detailed Info")
         
     with col4:
         st.markdown("""
         <div class="nav-card">
             <div class="nav-icon">⚙️</div>
-            <h3>Settings</h3>
+            <h3 style="margin:0">Settings</h3>
             <p style="font-size: 0.9rem;">Configure API & Theme.</p>
         </div>
         """, unsafe_allow_html=True)
+        # ACTION BUTTON
+        if st.button("Open Settings", key="btn_settings", use_container_width=True):
+            navigate_to("Settings")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
