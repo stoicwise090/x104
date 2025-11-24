@@ -3,7 +3,6 @@ import time
 
 def show():
     # --- Local CSS for Settings Page ---
-    # This fixes the input field colors and creates the card effect
     is_dark = st.session_state.get('theme', 'light') == 'dark'
     
     card_bg = "#1e293b" if is_dark else "#ffffff"
@@ -55,14 +54,25 @@ def show():
     with c1:
         st.markdown("**Language & Region**")
         st.caption("Select the language for AI reports.")
-        lang = st.selectbox(
+        
+        # Determine index safely
+        languages = ["English", "Hindi", "Gujarati", "Marathi", "Punjabi"]
+        current_lang = st.session_state.get('language', 'English')
+        try:
+            lang_index = languages.index(current_lang)
+        except ValueError:
+            lang_index = 0
+            
+        selected_lang = st.selectbox(
             "Language", 
-            ["English", "Hindi", "Gujarati", "Marathi", "Punjabi"],
+            languages,
+            index=lang_index,
             label_visibility="collapsed",
-            index=["English", "Hindi", "Gujarati", "Marathi", "Punjabi"].index(st.session_state.get('language', 'English'))
+            key="lang_select"
         )
-        if lang != st.session_state.get('language'):
-            st.session_state.language = lang
+        
+        if selected_lang != st.session_state.get('language'):
+            st.session_state.language = selected_lang
             st.rerun()
 
     with c2:
@@ -72,7 +82,6 @@ def show():
         current_theme = st.session_state.get('theme', 'light')
         is_dark_mode = st.toggle("Dark Mode", value=(current_theme == 'dark'))
         
-        # Logic to switch theme
         if is_dark_mode and current_theme != 'dark':
             st.session_state.theme = 'dark'
             st.rerun()
@@ -89,22 +98,27 @@ def show():
     
     st.info("💡 By default, the app uses the system-provided API key. Entering a key below will override it.")
     
-    current_key = st.session_state.get('api_key', '')
-    
-    col_input, col_btn = st.columns([3, 1])
-    with col_input:
-        user_key = st.text_input(
-            "Gemini API Key", 
-            type="password", 
-            value=current_key,
-            placeholder="sk-...",
-            label_visibility="collapsed"
-        )
-    with col_btn:
-        if st.button("Save Key", use_container_width=True):
-            st.session_state.api_key = user_key
-            st.success("Saved!")
-            time.sleep(1)
+    # Use a Form to prevent click errors/reloads while typing
+    with st.form("api_key_form"):
+        current_key = st.session_state.get('api_key', '')
+        col_input, col_btn = st.columns([3, 1])
+        
+        with col_input:
+            new_key_input = st.text_input(
+                "Gemini API Key", 
+                type="password", 
+                value=current_key,
+                placeholder="sk-...",
+                label_visibility="collapsed"
+            )
+        
+        with col_btn:
+            submitted = st.form_submit_button("Save Key", use_container_width=True)
+            
+        if submitted:
+            st.session_state.api_key = new_key_input
+            st.success("API Key Saved Successfully!")
+            time.sleep(1) # Brief pause to show success message
             st.rerun()
             
     if st.session_state.get('api_key'):
