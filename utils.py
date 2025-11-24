@@ -74,8 +74,15 @@ def get_gemini_response(image, prompt):
     # Using the preview model as requested
     model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025') 
     
+    # --- LANGUAGE INJECTION ---
+    # This ensures the AI speaks the user's selected language
+    target_language = st.session_state.get('language', 'English')
+    language_instruction = f"\n\nIMPORTANT OUTPUT INSTRUCTION: Provide the response strictly in {target_language} language."
+    
+    final_prompt = prompt + language_instruction
+
     try:
-        response = model.generate_content([prompt, image])
+        response = model.generate_content([final_prompt, image])
         return response.text
     except Exception as e:
         return f"ERROR: {str(e)}"
