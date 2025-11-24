@@ -17,46 +17,181 @@ HELPLINE_NUMBERS = {
     "Uttar Pradesh": "1800-180-5141"
 }
 
-# --- THEME MANAGER ---
+# --- THEME MANAGER (GLOBAL CSS) ---
 def apply_theme():
-    """Applies CSS based on the current session state theme."""
+    """Applies a global design system using CSS variables."""
+    
+    # Define Color Palettes
     if st.session_state.get('theme') == 'dark':
-        bg_color = "#0f172a"
-        text_color = "#f8fafc"
-        card_bg = "#1e293b"
-        border_color = "#334155"
+        # Dark Theme (Slate & Emerald)
+        colors = {
+            "bg": "#0f172a",           # Deep Slate
+            "card_bg": "#1e293b",      # Lighter Slate
+            "text": "#f8fafc",         # White-ish
+            "sub_text": "#94a3b8",     # Grey text
+            "border": "#334155",       # Slate Border
+            "primary": "#34d399",      # Bright Emerald
+            "primary_hover": "#10b981",
+            "input_bg": "#020617",     # Almost Black
+            "input_text": "#ffffff",
+            "success_bg": "#064e3b",
+            "success_border": "#059669",
+            "danger_bg": "#450a0a",
+            "danger_border": "#dc2626"
+        }
     else:
-        bg_color = "#f8fafc"
-        text_color = "#1e293b"
-        card_bg = "#ffffff"
-        border_color = "#e2e8f0"
+        # Light Theme (Clean White & Emerald)
+        colors = {
+            "bg": "#f0f2f5",           # Light Grey-Blue
+            "card_bg": "#ffffff",      # Pure White
+            "text": "#1e293b",         # Dark Slate
+            "sub_text": "#64748b",     # Grey text
+            "border": "#e2e8f0",       # Light Border
+            "primary": "#059669",      # Emerald Green
+            "primary_hover": "#047857",
+            "input_bg": "#ffffff",
+            "input_text": "#000000",
+            "success_bg": "#ecfdf5",
+            "success_border": "#34d399",
+            "danger_bg": "#fef2f2",
+            "danger_border": "#f87171"
+        }
 
+    # Inject CSS
     st.markdown(f"""
         <style>
-        .stApp {{ background-color: {bg_color}; color: {text_color}; }}
-        .nav-card {{
-            background-color: {card_bg};
-            border: 1px solid {border_color};
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            transition: transform 0.2s;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            color: {text_color};
-            height: 100%;
+        /* --- GLOBAL VARIABLES --- */
+        :root {{
+            --bg-color: {colors['bg']};
+            --card-bg: {colors['card_bg']};
+            --text-color: {colors['text']};
+            --sub-text-color: {colors['sub_text']};
+            --border-color: {colors['border']};
+            --primary-color: {colors['primary']};
+            --primary-hover: {colors['primary_hover']};
+            --input-bg: {colors['input_bg']};
+            --input-text: {colors['input_text']};
         }}
-        .nav-card:hover {{ transform: translateY(-5px); border-color: #059669; }}
-        .nav-title {{ font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; }}
-        .nav-icon {{ font-size: 2.5rem; margin-bottom: 10px; }}
+
+        /* --- MAIN CONTAINER --- */
+        .stApp {{
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+        }}
         
-        /* Health Alert Cards */
-        .alert-critical {{ background-color: #fee2e2; border: 2px solid #ef4444; padding: 20px; border-radius: 10px; color: #991b1b; animation: pulse 2s infinite; }}
-        .alert-safe {{ background-color: #dcfce7; border: 2px solid #22c55e; padding: 20px; border-radius: 10px; color: #166534; }}
+        /* --- TEXT STYLING --- */
+        h1, h2, h3, h4, h5, h6, p, span, li, .stMarkdown {{
+            color: var(--text-color) !important;
+        }}
+        .stCaption {{
+            color: var(--sub_text_color) !important;
+        }}
+
+        /* --- CARDS & CONTAINERS --- */
+        .ui-card {{
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }}
+        .ui-card:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }}
+
+        /* --- NAVIGATION CARD (Home Page) --- */
+        .nav-card {{
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            height: 100%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }}
+        .nav-card:hover {{
+            border-color: var(--primary-color);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }}
+        .nav-icon {{
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            background: rgba(16, 185, 129, 0.1);
+            width: 60px;
+            height: 60px;
+            line-height: 60px;
+            border-radius: 50%;
+            margin-left: auto;
+            margin-right: auto;
+        }}
+
+        /* --- INPUT FIELDS (The Fix) --- */
+        /* Forces inputs to have clear borders and correct text colors */
+        div[data-baseweb="input"], div[data-baseweb="select"] {{
+            background-color: var(--input-bg) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 8px !important;
+        }}
+        div[data-baseweb="input"]:focus-within {{
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }}
         
-        @keyframes pulse {{
-            0% {{ box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }}
-            70% {{ box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }}
-            100% {{ box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }}
+        input[type="text"], input[type="password"] {{
+            color: var(--input-text) !important;
+            caret-color: var(--primary-color) !important;
+        }}
+        div[data-baseweb="select"] span {{
+            color: var(--input-text) !important;
+        }}
+
+        /* --- BUTTONS --- */
+        div.stButton > button {{
+            background-color: var(--primary-color) !important;
+            color: #ffffff !important;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            width: 100%;
+        }}
+        div.stButton > button:hover {{
+            background-color: var(--primary-hover) !important;
+        }}
+        div.stButton > button:active {{
+            transform: scale(0.98);
+        }}
+
+        /* --- ALERTS --- */
+        .alert-box {{
+            padding: 16px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid;
+        }}
+        .alert-safe {{
+            background-color: {colors['success_bg']};
+            border-color: {colors['success_border']};
+            color: {colors['success_border']};
+        }}
+        .alert-danger {{
+            background-color: {colors['danger_bg']};
+            border-color: {colors['danger_border']};
+            color: {colors['danger_border']};
+        }}
+
+        /* --- SIDEBAR --- */
+        section[data-testid="stSidebar"] {{
+            background-color: var(--card-bg);
+            border-right: 1px solid var(--border-color);
         }}
         </style>
     """, unsafe_allow_html=True)
@@ -64,21 +199,16 @@ def apply_theme():
 # --- API HANDLER ---
 def get_gemini_response(image, prompt):
     """Handles communication with Google Gemini API."""
-    # Priority: 1. User Key in Settings, 2. Env Var
     api_key = st.session_state.get('api_key') or os.getenv("GEMINI_API_KEY")
     
     if not api_key:
         return "ERROR: API Key missing. Please add it in Settings."
     
     genai.configure(api_key=api_key)
-    # Using the preview model as requested
     model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025') 
     
-    # --- LANGUAGE INJECTION ---
-    # This ensures the AI speaks the user's selected language
     target_language = st.session_state.get('language', 'English')
     language_instruction = f"\n\nIMPORTANT OUTPUT INSTRUCTION: Provide the response strictly in {target_language} language."
-    
     final_prompt = prompt + language_instruction
 
     try:
