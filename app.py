@@ -22,6 +22,10 @@ if 'theme' not in st.session_state:
 if 'language' not in st.session_state:
     st.session_state.language = 'English'
 
+# Initialize Navigation State
+if 'navigation' not in st.session_state:
+    st.session_state.navigation = "Home"
+
 # --- APPLY CSS THEME ---
 utils.apply_theme()
 
@@ -30,19 +34,21 @@ def main():
     with st.sidebar:
         st.title("🧭 Navigation")
         
-        # Determine the current page selection
-        # We use a radio button for clear, persistent navigation
-        page_selection = st.radio(
+        # KEY FIX: Added key="navigation" to bind this to session state
+        # This allows buttons on the Home page to update this selection
+        st.radio(
             "Go to", 
             ["Home", "Health Triage", "Breed & Facts", "Detailed Info", "Settings"],
-            index=0
+            key="navigation"
         )
         
         st.divider()
-        st.caption("Breed Recognition Site v2.1")
+        st.caption("Breed Recognition Site v2.2")
         st.caption("Rashtriya Gokul Mission")
 
-    # Routing Logic
+    # Routing Logic based on Session State
+    page_selection = st.session_state.navigation
+    
     if page_selection == "Home":
         home_page.show()
     elif page_selection == "Health Triage":
