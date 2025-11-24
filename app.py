@@ -1,254 +1,291 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
+import os
 import re
 
-# --- 1. CONFIGURATION & STYLES ---
+# Import prompts from the separate file
+from prompts import HEALTH_ALERT_PROMPT, FUN_FACTS_PROMPT, DETAILED_BREED_PROMPT
+
+# --- 1. APP CONFIGURATION ---
 st.set_page_config(
-    page_title="RGM Breed Analyst",
-    page_icon="🧬",
-    layout="wide"
+    page_title="Breed Recognition Site",
+    page_icon="🐮",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Custom CSS to make it look attractive (Like the React Dashboard)
-st.markdown("""
-    <style>
-    .main {
-        background-color: #f8fafc;
-    }
-    .stButton>button {
-        width: 100%;
-        background-color: #059669;
-        color: white;
-        border-radius: 12px;
-        padding: 0.75rem 1rem;
-        font-weight: 600;
-        border: none;
-    }
-    .stButton>button:hover {
-        background-color: #047857;
-        color: white;
-    }
-    .hero-card {
-        background: linear-gradient(135deg, #059669 0%, #0f766e 100%);
-        padding: 2rem;
-        border-radius: 1rem;
-        color: white;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-    .stat-card {
-        background-color: white;
-        padding: 1.5rem;
-        border-radius: 0.75rem;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    }
-    .feature-list {
-        background-color: white;
-        padding: 1.5rem;
-        border-radius: 0.75rem;
-        border: 1px solid #e2e8f0;
-    }
-    .reasoning-box {
-        background-color: #fffbeb;
-        border: 1px solid #fcd34d;
-        color: #92400e;
-        padding: 1.5rem;
-        border-radius: 0.75rem;
-        font-style: italic;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# --- 2. SESSION STATE SETUP ---
+if 'theme' not in st.session_state:
+    st.session_state.theme = 'light'
+if 'language' not in st.session_state:
+    st.session_state.language = 'English'
+if 'api_key' not in st.session_state:
+    st.session_state.api_key = ''
 
-# --- 2. THE PROMPT ---
-BREED_RECOGNITION_PROMPT = """
-### ROLE
-You are an expert veterinarian and cattle/buffalo breed specialist with extensive knowledge of Indian indigenous and crossbred cattle and buffalo breeds.
+# --- 3. HELPLINE DATA ---
+HELPLINE_NUMBERS = {
+    "All India (Kisan Call Center)": "1800-180-1551",
+    "Andhra Pradesh": "1962",
+    "Gujarat": "1962",
+    "Haryana": "1800-180-2117",
+    "Karnataka": "1800-425-0012",
+    "Madhya Pradesh": "1962",
+    "Maharashtra": "1962",
+    "Punjab": "1962",
+    "Tamil Nadu": "1962",
+    "Telangana": "1962",
+    "Uttar Pradesh": "1800-180-5141"
+}
 
-### TASK
-Your task is to analyze the provided image and identify the breed of cattle or buffalo shown.
+# --- 4. CSS STYLING & THEMES ---
+def apply_theme():
+    if st.session_state.theme == 'dark':
+        bg_color = "#0f172a"
+        text_color = "#f8fafc"
+        card_bg = "#1e293b"
+        border_color = "#334155"
+    else:
+        bg_color = "#f8fafc"
+        text_color = "#1e293b"
+        card_bg = "#ffffff"
+        border_color = "#e2e8f0"
 
-### CONTEXT & LISTS
-Common Indian Cattle Breeds to consider:
-- Gir, Sahiwal, Red Sindhi, Tharparkar, Rathi, Hariana, Ongole, Krishna Valley, Amritmahal, Hallikar, Khillari, Dangi, Deoni, Nimari, Malvi, Mewati, Nagori, Kankrej, etc.
+    st.markdown(f"""
+        <style>
+        .stApp {{ background-color: {bg_color}; color: {text_color}; }}
+        .nav-card {{
+            background-color: {card_bg};
+            border: 1px solid {border_color};
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            color: {text_color};
+            height: 100%;
+        }}
+        .nav-card:hover {{ transform: translateY(-5px); border-color: #059669; }}
+        .nav-title {{ font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; }}
+        .nav-icon {{ font-size: 2.5rem; margin-bottom: 10px; }}
+        
+        /* Health Alert Cards */
+        .alert-critical {{ background-color: #fee2e2; border: 2px solid #ef4444; padding: 20px; border-radius: 10px; color: #991b1b; animation: pulse 2s infinite; }}
+        .alert-safe {{ background-color: #dcfce7; border: 2px solid #22c55e; padding: 20px; border-radius: 10px; color: #166534; }}
+        
+        @keyframes pulse {{
+            0% {{ box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }}
+            70% {{ box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }}
+            100% {{ box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }}
+        }}
+        </style>
+    """, unsafe_allow_html=True)
 
-Common Indian Buffalo Breeds to consider:
-- Murrah, Nili-Ravi, Bhadawari, Jaffarabadi, Mehsana, Surti, Nagpuri, Toda, Pandharpuri, etc.
+apply_theme()
 
-### OUTPUT FORMAT
-Analyze the image carefully considering body structure, coat color, horn shape, facial features, body size, and any distinctive breed markers.
-Provide your analysis in the following structured Markdown format. DO NOT change the header titles:
-
-## 🧬 Primary Breed Identification
-* **Breed Name:** [The most likely breed name]
-* **Species:** [Cattle or Buffalo]
-
-## 🎯 Confidence Level
-* **Level:** [High/Medium/Low]
-
-## 📏 Key Physical Characteristics
-[List the specific visual features that led to this identification, such as horn shape, forehead, coat color, etc. separate with new lines]
-
-## 🔄 Alternative Possibilities
-[If uncertain, mention 1-2 other possible breeds]
-
-## 🌍 Breed Category & Origin
-* **Category:** [Indigenous/Crossbred/Exotic]
-* **Geographic Origin:** [Traditional region/state where this breed is commonly found]
-
-## 📝 Reasoning
-[Detailed reasoning for your identification based on the visual evidence.]
-"""
-
-# --- 3. HELPER FUNCTIONS ---
-def analyze_image(image, api_key):
-    if not api_key:
-        st.error("Please enter your Gemini API Key in the sidebar.")
-        return None
-
-    genai.configure(api_key=api_key)
+# --- 5. AI LOGIC HELPER ---
+def get_gemini_response(image, prompt):
+    # Priority: 1. User Key in Settings, 2. Env Var
+    api_key = st.session_state.api_key if st.session_state.api_key else os.getenv("GEMINI_API_KEY")
     
-    # Use the specific model requested
-    model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025') # Or 'gemini-1.5-flash' if preview not available
-
+    if not api_key:
+        return "ERROR: API Key missing. Please add it in Settings."
+    
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025') # Or 'gemini-1.5-flash'
+    
     try:
-        response = model.generate_content([
-            BREED_RECOGNITION_PROMPT,
-            image
-        ])
+        response = model.generate_content([prompt, image])
         return response.text
     except Exception as e:
-        st.error(f"Error connecting to Gemini: {e}")
-        return None
+        return f"ERROR: {str(e)}"
 
-def parse_markdown_response(text):
-    """Parses the markdown text into a dictionary for the dashboard."""
-    data = {
-        "breed_name": "Unknown",
-        "species": "Unknown",
-        "confidence": "Low",
-        "characteristics": [],
-        "alternatives": "None",
-        "category": "Unknown",
-        "origin": "Unknown",
-        "reasoning": ""
-    }
+# --- 6. PAGE: HOME ---
+def page_home():
+    st.title("🏡 Breed Recognition Site")
+    st.write("Welcome to your AI-powered veterinary companion.")
     
-    # Simple regex based parsing (robust enough for structured AI output)
-    breed_match = re.search(r"\*\*Breed Name:\*\*\s*(.*)", text)
-    if breed_match: data["breed_name"] = breed_match.group(1).strip()
+    st.divider()
     
-    species_match = re.search(r"\*\*Species:\*\*\s*(.*)", text)
-    if species_match: data["species"] = species_match.group(1).strip()
+    # Navigation Cards using Columns
+    col1, col2, col3, col4 = st.columns(4)
     
-    conf_match = re.search(r"\*\*Level:\*\*\s*(.*)", text)
-    if conf_match: data["confidence"] = conf_match.group(1).strip()
+    with col1:
+        st.markdown("""
+        <div class="nav-card">
+            <div class="nav-icon">📸</div>
+            <div class="nav-title">Fun Facts</div>
+            <p>Identify breed & learn cool trivia.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="nav-card">
+            <div class="nav-icon">🩺</div>
+            <div class="nav-title">Health Triage</div>
+            <p>Scan for visible diseases & injuries.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    cat_match = re.search(r"\*\*Category:\*\*\s*(.*)", text)
-    if cat_match: data["category"] = cat_match.group(1).strip()
-
-    origin_match = re.search(r"\*\*Geographic Origin:\*\*\s*(.*)", text)
-    if origin_match: data["origin"] = origin_match.group(1).strip()
-    
-    # Extract Reasoning
-    reasoning_parts = text.split("## 📝 Reasoning")
-    if len(reasoning_parts) > 1:
-        data["reasoning"] = reasoning_parts[1].strip()
+    with col3:
+        st.markdown("""
+        <div class="nav-card">
+            <div class="nav-icon">🧬</div>
+            <div class="nav-title">Detailed Info</div>
+            <p>Expert evaluation & physical analysis.</p>
+        </div>
+        """, unsafe_allow_html=True)
         
-    # Extract Characteristics
-    char_section = re.search(r"## 📏 Key Physical Characteristics\n(.*?)(?=\n##)", text, re.DOTALL)
-    if char_section:
-        raw_chars = char_section.group(1).strip().split('\n')
-        data["characteristics"] = [c.strip().lstrip('*').lstrip('-').strip() for c in raw_chars if c.strip()]
+    with col4:
+        st.markdown("""
+        <div class="nav-card">
+            <div class="nav-icon">⚙️</div>
+            <div class="nav-title">Settings</div>
+            <p>Configure API & Preferences.</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    return data
+    st.markdown("---")
+    
+    # Helpline Section
+    st.subheader("📞 Animal Helpline Directory")
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        state_selection = st.selectbox("Select your State/Region", list(HELPLINE_NUMBERS.keys()))
+    with c2:
+        st.info(f"🚑 Emergency Number for **{state_selection}**: **{HELPLINE_NUMBERS[state_selection]}**")
+        st.caption("*Use this number for ambulance or veterinary emergencies.*")
 
-# --- 4. MAIN UI LAYOUT ---
-with st.sidebar:
-    st.header("⚙️ Configuration")
-    api_key = st.text_input("Gemini API Key", type="password", help="Get your key from aistudio.google.com")
-    st.info("Upload an image of Cattle or Buffalo to identify its breed according to RGM standards.")
-
-st.title("🧬 RGM Breed Analyst")
-st.markdown("### Rashtriya Gokul Mission - AI Identification Tool")
-
-col1, col2 = st.columns([1, 1.5], gap="large")
-
-with col1:
-    st.markdown("#### 📸 Specimen Photo")
-    uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
+# --- 7. PAGE: HEALTH TRIAGE ---
+def page_health():
+    st.title("🩺 Health Triage & Alert System")
+    st.write("Upload an image to scan for visible signs of LSD, FMD, or Wounds.")
+    
+    uploaded_file = st.file_uploader("Upload Animal Image", type=['jpg', 'png', 'jpeg'], key="health_up")
     
     if uploaded_file:
         image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Specimen", use_column_width=True, channels="RGB")
+        st.image(image, width=300, caption="Specimen")
         
-        analyze_btn = st.button("🔍 Identify Breed")
-
-with col2:
-    if uploaded_file and analyze_btn:
-        with st.spinner("Consulting Breed Standards..."):
-            raw_result = analyze_image(image, api_key)
-            
-            if raw_result:
-                data = parse_markdown_response(raw_result)
+        if st.button("🏥 Scan for Disease"):
+            with st.spinner("Analyzing clinical signs..."):
+                response = get_gemini_response(image, HEALTH_ALERT_PROMPT)
                 
-                # --- DASHBOARD UI ---
-                
-                # 1. Hero Card
-                st.markdown(f"""
-                <div class="hero-card">
-                    <p style="margin:0; opacity:0.8; font-size:0.9rem; text-transform:uppercase; letter-spacing:1px;">Identified Breed</p>
-                    <h1 style="margin:0.5rem 0; font-size:2.5rem;">{data['breed_name']}</h1>
-                    <div style="display:flex; gap:10px; margin-top:10px;">
-                        <span style="background:rgba(255,255,255,0.2); padding:4px 12px; border-radius:20px; font-size:0.8rem;">🧬 {data['species']}</span>
-                        <span style="background:rgba(255,255,255,0.2); padding:4px 12px; border-radius:20px; font-size:0.8rem;">🏆 {data['category']}</span>
-                        <span style="background:rgba(255,255,255,0.2); padding:4px 12px; border-radius:20px; font-size:0.8rem;">📊 {data['confidence']} Confidence</span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # 2. Stats Grid
-                c1, c2 = st.columns(2)
-                with c1:
+                if "CRITICAL" in response or "WARNING" in response:
                     st.markdown(f"""
-                    <div class="stat-card">
-                        <small style="color:#64748b; text-transform:uppercase; font-weight:bold;">🌍 Geographic Origin</small>
-                        <h3 style="margin:5px 0 0 0; color:#1e293b;">{data['origin']}</h3>
+                    <div class="alert-critical">
+                        <h2>⚠️ MEDICAL ALERT DETECTED</h2>
+                        <p>The AI has detected potential signs of disease or injury.</p>
+                        <hr style="border-color: #ef4444; opacity: 0.5;">
+                        <pre style="white-space: pre-wrap; font-family: sans-serif;">{response}</pre>
                     </div>
                     """, unsafe_allow_html=True)
-                with c2:
+                elif "HEALTHY" in response:
                     st.markdown(f"""
-                    <div class="stat-card">
-                        <small style="color:#64748b; text-transform:uppercase; font-weight:bold;">⚖️ Breed Type</small>
-                        <h3 style="margin:5px 0 0 0; color:#1e293b;">{data['category']}</h3>
+                    <div class="alert-safe">
+                        <h2>✅ No Visible Threats</h2>
+                        <p>No immediate signs of severe disease detected.</p>
+                        <hr style="border-color: #22c55e; opacity: 0.5;">
+                        <pre style="white-space: pre-wrap; font-family: sans-serif;">{response}</pre>
                     </div>
                     """, unsafe_allow_html=True)
-                
-                st.write("") # Spacer
+                else:
+                    st.error(response)
 
-                # 3. Characteristics
-                st.subheader("📏 Key Physical Markers")
-                for char in data['characteristics']:
-                    st.info(f"✅ {char}")
-
-                # 4. Reasoning
-                st.subheader("🛡️ Expert Reasoning")
-                st.markdown(f"""
-                <div class="reasoning-box">
-                    "{data['reasoning']}"
-                </div>
-                """, unsafe_allow_html=True)
-
-                # Export (Raw text)
-                with st.expander("View Raw Report"):
-                    st.markdown(raw_result)
+# --- 8. PAGE: FUN FACTS ---
+def page_fun_facts():
+    st.title("🐮 Breed Check & Fun Facts")
+    st.write("Discover the breed and learn something new!")
     
-    elif not uploaded_file:
-        st.info("👈 Upload an image on the left to begin analysis.")
-        st.markdown("""
-        <div style="text-align: center; color: #94a3b8; padding: 2rem;">
-            <h4>Waiting for Input</h4>
-            <p>Upload a clear side-profile photo of the animal.</p>
-        </div>
-        """, unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("Upload Image", type=['jpg', 'png'], key="fun_up")
+    
+    if uploaded_file:
+        image = Image.open(uploaded_file)
+        st.image(image, width=300)
+        
+        if st.button("🎉 Tell Me About It!"):
+            with st.spinner("Consulting nature guide..."):
+                response = get_gemini_response(image, FUN_FACTS_PROMPT)
+                st.markdown(response)
+                st.balloons()
+
+# --- 9. PAGE: DETAILED INFO ---
+def page_detailed_info():
+    st.title("🧬 Detailed Breed Information")
+    st.write("Expert-level evaluation for professionals and breeders.")
+    
+    uploaded_file = st.file_uploader("Upload Image", type=['jpg', 'png'], key="detail_up")
+    
+    if uploaded_file:
+        image = Image.open(uploaded_file)
+        st.image(image, width=300)
+        
+        if st.button("📊 Generate Expert Report"):
+            with st.spinner("Analyzing breed standards..."):
+                response = get_gemini_response(image, DETAILED_BREED_PROMPT)
+                
+                # We can render this raw or use the parsing logic from previous turns
+                # For simplicity and robustness with the prompt provided, we render Markdown
+                st.markdown("---")
+                st.markdown(response)
+                
+                with st.expander("Download Report"):
+                    st.download_button("Download Text", response, file_name="breed_report.md")
+
+# --- 10. PAGE: SETTINGS ---
+def page_settings():
+    st.title("⚙️ Settings & Configuration")
+    
+    # Language
+    st.subheader("🌐 Language & Region")
+    lang = st.selectbox("Application Language", ["English", "Hindi", "Gujarati", "Marathi", "Punjabi"])
+    if lang != st.session_state.language:
+        st.session_state.language = lang
+        st.toast(f"Language set to {lang} (AI Output will try to match)")
+    
+    # Theme
+    st.subheader("🎨 Appearance")
+    is_dark = st.toggle("Dark Mode", value=(st.session_state.theme == 'dark'))
+    if is_dark and st.session_state.theme != 'dark':
+        st.session_state.theme = 'dark'
+        st.rerun()
+    elif not is_dark and st.session_state.theme != 'light':
+        st.session_state.theme = 'light'
+        st.rerun()
+
+    # API Key
+    st.subheader("🔑 API Configuration")
+    st.info("By default, the app uses the system key. Enter a key below to override it.")
+    user_key = st.text_input("Custom Gemini API Key", type="password", value=st.session_state.api_key)
+    
+    if st.button("Save API Key"):
+        st.session_state.api_key = user_key
+        st.success("API Key Saved!")
+
+# --- 11. MAIN NAVIGATION CONTROLLER ---
+def main():
+    # Sidebar Navigation
+    with st.sidebar:
+        st.title("🧭 Navigation")
+        page = st.radio("Go to", 
+            ["Home", "Health Triage", "Breed & Facts", "Detailed Info", "Settings"],
+            index=0
+        )
+        st.divider()
+        st.caption("Breed Recognition Site v2.0")
+
+    # Page Routing
+    if page == "Home":
+        page_home()
+    elif page == "Health Triage":
+        page_health()
+    elif page == "Breed & Facts":
+        page_fun_facts()
+    elif page == "Detailed Info":
+        page_detailed_info()
+    elif page == "Settings":
+        page_settings()
+
+if __name__ == "__main__":
+    main()
