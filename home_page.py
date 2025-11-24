@@ -1,10 +1,10 @@
 import streamlit as st
 from utils import HELPLINE_NUMBERS
 
-# Helper function to change pages
-def navigate_to(page_name):
+# --- NAVIGATION HELPER ---
+# We define this function to handle the state update safely
+def go_to_page(page_name):
     st.session_state.navigation = page_name
-    st.rerun()
 
 def show():
     # Hero Section
@@ -19,6 +19,7 @@ def show():
     st.markdown("### 🧭 Quick Access")
     col1, col2, col3, col4 = st.columns(4)
     
+    # --- CARD 1: FUN FACTS ---
     with col1:
         st.markdown("""
         <div class="nav-card">
@@ -27,10 +28,16 @@ def show():
             <p style="font-size: 0.9rem;">Identify breeds & learn trivia.</p>
         </div>
         """, unsafe_allow_html=True)
-        # ACTION BUTTON
-        if st.button("Go to Fun Facts", key="btn_facts", use_container_width=True):
-            navigate_to("Breed & Facts")
+        # FIX: Use on_click callback instead of if st.button
+        st.button(
+            "Go to Fun Facts", 
+            key="btn_facts", 
+            use_container_width=True,
+            on_click=go_to_page,
+            args=("Breed & Facts",)
+        )
     
+    # --- CARD 2: HEALTH TRIAGE ---
     with col2:
         st.markdown("""
         <div class="nav-card">
@@ -39,10 +46,16 @@ def show():
             <p style="font-size: 0.9rem;">Scan for diseases & injuries.</p>
         </div>
         """, unsafe_allow_html=True)
-        # ACTION BUTTON
-        if st.button("Go to Triage", key="btn_health", use_container_width=True):
-            navigate_to("Health Triage")
+        # FIX: Use on_click callback
+        st.button(
+            "Go to Triage", 
+            key="btn_health", 
+            use_container_width=True,
+            on_click=go_to_page,
+            args=("Health Triage",)
+        )
 
+    # --- CARD 3: DEEP ANALYSIS ---
     with col3:
         st.markdown("""
         <div class="nav-card">
@@ -51,10 +64,16 @@ def show():
             <p style="font-size: 0.9rem;">Expert breed evaluation.</p>
         </div>
         """, unsafe_allow_html=True)
-        # ACTION BUTTON
-        if st.button("Go to Analysis", key="btn_detail", use_container_width=True):
-            navigate_to("Detailed Info")
+        # FIX: Use on_click callback
+        st.button(
+            "Go to Analysis", 
+            key="btn_detail", 
+            use_container_width=True,
+            on_click=go_to_page,
+            args=("Detailed Info",)
+        )
         
+    # --- CARD 4: SETTINGS ---
     with col4:
         st.markdown("""
         <div class="nav-card">
@@ -63,9 +82,14 @@ def show():
             <p style="font-size: 0.9rem;">Configure API & Theme.</p>
         </div>
         """, unsafe_allow_html=True)
-        # ACTION BUTTON
-        if st.button("Open Settings", key="btn_settings", use_container_width=True):
-            navigate_to("Settings")
+        # FIX: Use on_click callback
+        st.button(
+            "Open Settings", 
+            key="btn_settings", 
+            use_container_width=True,
+            on_click=go_to_page,
+            args=("Settings",)
+        )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
