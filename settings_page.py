@@ -3,7 +3,6 @@ import time
 
 def show():
     # --- Local CSS for Settings Page ---
-    # We explicitly define high-contrast colors here to fix the visibility issues
     is_dark = st.session_state.get('theme', 'light') == 'dark'
     
     if is_dark:
@@ -43,8 +42,26 @@ def show():
             gap: 8px;
         }}
         
-        /* --- FORCE INPUT VISIBILITY --- */
-        /* This forces the text box and dropdowns to have distinct colors */
+        /* --- CRITICAL VISIBILITY FIXES --- */
+        
+        /* 1. Force Text Color for Toggle Switch Labels */
+        div[data-testid="stToggle"] label p {{
+            color: {text_color} !important;
+            font-weight: 600;
+        }}
+        
+        /* 2. Force Text Color for standard Labels (above inputs) */
+        div[data-testid="stMarkdownContainer"] p {{
+            color: {text_color} !important;
+        }}
+        
+        /* 3. Force Text Color for Captions (small text) */
+        .stCaption {{
+            color: {text_color} !important;
+            opacity: 0.8;
+        }}
+
+        /* 4. Input Fields Styling */
         div[data-baseweb="select"] > div, 
         div[data-baseweb="input"] > div {{
             background-color: {input_bg} !important;
@@ -52,20 +69,19 @@ def show():
             color: {input_text} !important;
         }}
         
-        /* Force the actual text inside inputs to be visible */
+        /* 5. Force Input Text Color */
         input[type="text"], input[type="password"] {{
             color: {input_text} !important;
             -webkit-text-fill-color: {input_text} !important;
             caret-color: {text_color};
         }}
         
-        /* Fix Dropdown Text */
+        /* 6. Fix Dropdown/Select Text */
         div[data-baseweb="select"] span {{
             color: {input_text} !important;
         }}
         
         /* --- BUTTON STYLING --- */
-        /* Makes buttons pop with color */
         div.stButton > button {{
             background-color: {btn_bg} !important;
             color: {btn_text} !important;
@@ -76,11 +92,6 @@ def show():
         div.stButton > button:hover {{
             opacity: 0.9;
             transform: scale(1.01);
-        }}
-        
-        /* --- LABEL STYLING --- */
-        label, .stMarkdown p {{
-            color: {text_color} !important;
         }}
     </style>
     """, unsafe_allow_html=True)
