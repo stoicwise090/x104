@@ -3,12 +3,25 @@ import time
 
 def show():
     # --- Local CSS for Settings Page ---
+    # We explicitly define high-contrast colors here to fix the visibility issues
     is_dark = st.session_state.get('theme', 'light') == 'dark'
     
-    card_bg = "#1e293b" if is_dark else "#ffffff"
-    text_color = "#f8fafc" if is_dark else "#1e293b"
-    border_color = "#334155" if is_dark else "#e2e8f0"
-    input_bg = "#334155" if is_dark else "#f1f5f9"
+    if is_dark:
+        card_bg = "#1e293b"       # Dark Blue-Grey
+        text_color = "#f8fafc"    # White
+        border_color = "#334155"  # Lighter Grey border
+        input_bg = "#0f172a"      # Very Dark background for inputs
+        input_text = "#ffffff"    # Pure White text
+        btn_bg = "#3b82f6"        # Bright Blue for buttons
+        btn_text = "#ffffff"
+    else:
+        card_bg = "#ffffff"       # Pure White
+        text_color = "#1e293b"    # Dark Grey
+        border_color = "#cbd5e1"  # Light Grey border
+        input_bg = "#f8fafc"      # Off-white background for inputs
+        input_text = "#000000"    # Pure Black text
+        btn_bg = "#059669"        # Emerald Green for buttons
+        btn_text = "#ffffff"
     
     st.markdown(f"""
     <style>
@@ -18,24 +31,55 @@ def show():
             border-radius: 12px;
             padding: 24px;
             margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }}
         .settings-header {{
-            font-size: 1.1rem;
-            font-weight: 600;
+            font-size: 1.2rem;
+            font-weight: 700;
             color: {text_color};
             margin-bottom: 16px;
             display: flex;
             align-items: center;
             gap: 8px;
         }}
-        /* Fix for Input Fields to match theme */
-        div[data-baseweb="select"] > div, div[data-baseweb="input"] > div {{
+        
+        /* --- FORCE INPUT VISIBILITY --- */
+        /* This forces the text box and dropdowns to have distinct colors */
+        div[data-baseweb="select"] > div, 
+        div[data-baseweb="input"] > div {{
             background-color: {input_bg} !important;
-            border-color: {border_color} !important;
-            color: {text_color} !important;
+            border: 1px solid {border_color} !important;
+            color: {input_text} !important;
         }}
+        
+        /* Force the actual text inside inputs to be visible */
+        input[type="text"], input[type="password"] {{
+            color: {input_text} !important;
+            -webkit-text-fill-color: {input_text} !important;
+            caret-color: {text_color};
+        }}
+        
+        /* Fix Dropdown Text */
         div[data-baseweb="select"] span {{
+            color: {input_text} !important;
+        }}
+        
+        /* --- BUTTON STYLING --- */
+        /* Makes buttons pop with color */
+        div.stButton > button {{
+            background-color: {btn_bg} !important;
+            color: {btn_text} !important;
+            border: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }}
+        div.stButton > button:hover {{
+            opacity: 0.9;
+            transform: scale(1.01);
+        }}
+        
+        /* --- LABEL STYLING --- */
+        label, .stMarkdown p {{
             color: {text_color} !important;
         }}
     </style>
@@ -55,7 +99,6 @@ def show():
         st.markdown("**Language & Region**")
         st.caption("Select the language for AI reports.")
         
-        # Determine index safely
         languages = ["English", "Hindi", "Gujarati", "Marathi", "Punjabi"]
         current_lang = st.session_state.get('language', 'English')
         try:
@@ -64,7 +107,7 @@ def show():
             lang_index = 0
             
         selected_lang = st.selectbox(
-            "Language", 
+            "Language Selection", 
             languages,
             index=lang_index,
             label_visibility="collapsed",
@@ -109,16 +152,19 @@ def show():
                 type="password", 
                 value=current_key,
                 placeholder="sk-...",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                help="Enter your Google Gemini API Key here"
             )
         
         with col_btn:
+            # Added some spacing for alignment
+            st.markdown("<div style='margin-top: 2px;'></div>", unsafe_allow_html=True)
             submitted = st.form_submit_button("Save Key", use_container_width=True)
             
         if submitted:
             st.session_state.api_key = new_key_input
             st.success("API Key Saved Successfully!")
-            time.sleep(1) # Brief pause to show success message
+            time.sleep(1)
             st.rerun()
             
     if st.session_state.get('api_key'):
@@ -137,7 +183,7 @@ def show():
     with sc1:
         st.markdown("**Cache Control**")
         st.caption("Clear temporary files and reset app state.")
-        if st.button("Clear App Cache"):
+        if st.button("Clear App Cache", key="clear_cache_btn"):
             st.cache_data.clear()
             st.cache_resource.clear()
             st.toast("Cache cleared successfully!", icon="🧹")
