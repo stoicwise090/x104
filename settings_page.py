@@ -6,31 +6,41 @@ def show():
     is_dark = st.session_state.get('theme', 'light') == 'dark'
     
     if is_dark:
-        card_bg = "#1e293b"       # Dark Blue-Grey
-        text_color = "#f8fafc"    # White
-        border_color = "#334155"  # Lighter Grey border
-        input_bg = "#0f172a"      # Very Dark background for inputs
-        input_text = "#ffffff"    # Pure White text
-        btn_bg = "#3b82f6"        # Bright Blue for buttons
+        main_bg = "#0f172a"
+        card_bg = "#1e293b"
+        text_color = "#ffffff"
+        sub_text_color = "#cbd5e1"
+        border_color = "#475569"
+        input_bg = "#334155"
+        input_text = "#ffffff"
+        btn_bg = "#3b82f6"
         btn_text = "#ffffff"
     else:
-        card_bg = "#ffffff"       # Pure White
-        text_color = "#1e293b"    # Dark Grey
-        border_color = "#cbd5e1"  # Light Grey border
-        input_bg = "#f8fafc"      # Off-white background for inputs
-        input_text = "#000000"    # Pure Black text
-        btn_bg = "#059669"        # Emerald Green for buttons
+        main_bg = "#f8fafc"
+        card_bg = "#ffffff"
+        text_color = "#0f172a"
+        sub_text_color = "#475569"
+        border_color = "#cbd5e1"
+        input_bg = "#f1f5f9"
+        input_text = "#000000"
+        btn_bg = "#059669"
         btn_text = "#ffffff"
     
     st.markdown(f"""
     <style>
+        /* Force Main Background to match theme */
+        .stApp {{
+            background-color: {main_bg};
+        }}
+
+        /* Card Styling */
         .settings-card {{
             background-color: {card_bg};
             border: 1px solid {border_color};
             border-radius: 12px;
             padding: 24px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }}
         .settings-header {{
             font-size: 1.2rem;
@@ -39,59 +49,50 @@ def show():
             margin-bottom: 16px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }}
         
-        /* --- CRITICAL VISIBILITY FIXES --- */
-        
-        /* 1. Force Text Color for Toggle Switch Labels */
-        div[data-testid="stToggle"] label p {{
-            color: {text_color} !important;
-            font-weight: 600;
-        }}
-        
-        /* 2. Force Text Color for standard Labels (above inputs) */
-        div[data-testid="stMarkdownContainer"] p {{
+        /* --- TEXT VISIBILITY FIXES --- */
+        h1, h2, h3, p, li, span, label, .stMarkdown, .stCaption {{
             color: {text_color} !important;
         }}
-        
-        /* 3. Force Text Color for Captions (small text) */
         .stCaption {{
-            color: {text_color} !important;
-            opacity: 0.8;
+            color: {sub_text_color} !important;
         }}
 
-        /* 4. Input Fields Styling */
-        div[data-baseweb="select"] > div, 
-        div[data-baseweb="input"] > div {{
+        /* --- INPUT FIELDS (Stronger Borders) --- */
+        /* Targets the container of the input box */
+        div[data-baseweb="input"], div[data-baseweb="select"] {{
             background-color: {input_bg} !important;
-            border: 1px solid {border_color} !important;
-            color: {input_text} !important;
+            border: 2px solid {border_color} !important; 
+            border-radius: 8px !important;
         }}
         
-        /* 5. Force Input Text Color */
+        /* Targets the actual text inside the input */
         input[type="text"], input[type="password"] {{
             color: {input_text} !important;
             -webkit-text-fill-color: {input_text} !important;
-            caret-color: {text_color};
+            background-color: transparent !important;
+        }}
+
+        /* --- TOGGLE SWITCH FIX --- */
+        /* Ensures the toggle label is visible */
+        div[data-testid="stToggle"] label p {{
+            font-weight: 600;
+            font-size: 1rem;
         }}
         
-        /* 6. Fix Dropdown/Select Text */
-        div[data-baseweb="select"] span {{
-            color: {input_text} !important;
-        }}
-        
-        /* --- BUTTON STYLING --- */
+        /* --- BUTTONS --- */
         div.stButton > button {{
             background-color: {btn_bg} !important;
             color: {btn_text} !important;
             border: none;
+            padding: 0.5rem 1rem;
             font-weight: 600;
-            transition: all 0.2s;
+            border-radius: 8px;
         }}
         div.stButton > button:hover {{
-            opacity: 0.9;
-            transform: scale(1.01);
+            filter: brightness(110%);
         }}
     </style>
     """, unsafe_allow_html=True)
@@ -155,6 +156,8 @@ def show():
     # Use a Form to prevent click errors/reloads while typing
     with st.form("api_key_form"):
         current_key = st.session_state.get('api_key', '')
+        
+        # Using columns to layout the input and button
         col_input, col_btn = st.columns([3, 1])
         
         with col_input:
@@ -168,8 +171,8 @@ def show():
             )
         
         with col_btn:
-            # Added some spacing for alignment
-            st.markdown("<div style='margin-top: 2px;'></div>", unsafe_allow_html=True)
+            # Add a little top margin to align with input box
+            st.markdown("<div style='margin-top: 4px;'></div>", unsafe_allow_html=True)
             submitted = st.form_submit_button("Save Key", use_container_width=True)
             
         if submitted:
